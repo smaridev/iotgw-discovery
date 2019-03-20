@@ -4,7 +4,7 @@ summary: IOT Gateway discovery manager snap
 description: discovery application
 confinement: devmode
 grade: devel
-
+architectures: [armhf amd64]
 environment:
   LD_LIBRARY_PATH: "$LD_LIBRARY_PATH:$SNAP/lib"
   LD_LIBRARY_PATH: "$SNAP_LIBRARY_PATH:$LD_LIBRARY_PATH"
@@ -26,4 +26,3 @@ apps:
     daemon: simple
     plugs: [network, snapd-control]
 
-architectures: [armhf amd64]
