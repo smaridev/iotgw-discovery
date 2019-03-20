@@ -1,0 +1,11 @@
+{
+  "app": {
+    "sendInterval": 30000,
+    "loggingLevel": "DEBUG"
+  },
+  "mqtt": {
+    "host": "localhost",
+    "port": 1883,
+    "topic": "iotgw/discovery"
+  }
+}

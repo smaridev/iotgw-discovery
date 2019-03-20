@@ -1,0 +1,39 @@
+{
+  "name": "iotgw-discovery",
+  "version": "0.0.1",
+  "description": "Health Monitor application",
+  "main": "iotgw-hmon.js",
+  "scripts": {
+    "start": "node ./iotgw-discovery.js",
+    "lint": "./node_modules/.bin/eslint .",
+    "lint:fix": "npm run lint -- --fix",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=8.12.0"
+  },
+  "files": [
+    "iotgw-discovery.js",
+    "config.json"
+  ],
+  "bin": "iotgw-discovery.js",
+  "repository": {
+    "type": "git"
+  },
+  "keywords": [
+    "mqtt"
+  ],
+  "author": "Mari",
+  "license": "MIT",
+  "dependencies": {
+    "mqtt": "^2.18.8",
+    "os-utils": "^0.0.14",
+    "async": "^2.3.0",
+    "node-cleanup": "^2.1.2" 
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.10.0"
+  }
+}
