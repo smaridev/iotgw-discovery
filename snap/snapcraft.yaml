@@ -3,7 +3,7 @@ version: '1.0'
 summary: IOT Gateway discovery manager snap 
 description: discovery application
 confinement: strict
-architectures: [armhf amd64]
+architectures: [armhf]
 parts:
   iotgw-discovery:
     plugin: nodejs
