@@ -2,13 +2,17 @@ name: iotgw-discovery
 version: '1.1'
 summary: IOT Gateway discovery manager snap 
 description: discovery application
-grade: devel
+confinement: strict
 architectures: [armhf amd64]
 environment:
   LD_LIBRARY_PATH: "$LD_LIBRARY_PATH:$SNAP/lib"
   LD_LIBRARY_PATH: "$SNAP_LIBRARY_PATH:$LD_LIBRARY_PATH"
   NODE_PATH: $SNAP/lib/node_modules
-
+apps:
+  iotgw-discovery:
+    command: "bin/iotgw-discovery"
+    daemon: simple
+    plugs: [network, snapd-control]
 parts:
   iotgw-discovery:
     plugin: nodejs
@@ -19,8 +23,4 @@ parts:
       - python
       - g++
       - make
-apps:
-  iotgw-discovery:
-    command: "bin/iotgw-discovery"
-    daemon: simple
-    plugs: [network, snapd-control]
+
