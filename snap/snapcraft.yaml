@@ -11,7 +11,7 @@ environment:
   NODE_PATH: $SNAP/lib/node_modules
 apps:
   iotgw-discovery:
-    command: "iotgw-discovery"
+    command: iotgw-discovery
     daemon: simple
     plugs: [network, snapd-control]
 parts:
