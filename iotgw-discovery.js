@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const MQTT = require('mqtt');
-const async = require("async");
 const os = require('os');
 const http = require('http');
 
@@ -66,6 +65,7 @@ const sendRegistration = () => {
     var eth0 = os.networkInterfaces()['eth0'];
     const msg = JSON.stringify({
         tpid: getserial(),
+        cid: "100",
         message: "dscmgr/registration",
         timestamp: Math.round((new Date()).getTime() / 1000),
         networkdetails: eth0,
@@ -76,16 +76,6 @@ const sendRegistration = () => {
     mqttClient.publish("dscmgr/registration", msg);
     registration_success = 0;
     log(`Send Device Registration to cloud ${msg}`);
-
-    // Test code for snap install/update/remove
-     /* const test_message = JSON.stringify({
-        action: "install",
-        //snaps: ["hello", "hello-world", "hmon", "httplab"] 
-        snaps: ["hello"]
-        });
-
-    handleSnapUpdate(test_message);
-    */
 };
 
 const brokerConnect = (mqttConfig) => {
@@ -114,7 +104,6 @@ const brokerConnect = (mqttConfig) => {
     // Setup MQTT client on new message event
     mqttClient.on('message', mqttOnMessageEventHandler);
     log(`Subscribe mqtt topic to: ${mqttAddr}`, '', LOGGING_LEVELS.INFO);
-    console.log("Starting service.");
     applicationState = APP_STATE_RUNNING;
   });
   
@@ -126,20 +115,23 @@ const brokerConnect = (mqttConfig) => {
 
 // Handler for new MQTT messages
 var mqttOnMessageEventHandler = function (topic, message) {
+    // message is Buffer
+    var payload = JSON.parse(message.toString());
     switch (topic) {
     case topic_snapupdates_subscribe:
-      return handleSnapUpdate(message)
+      return handleSnapUpdate(payload);
     case topic_registration_subscribe:
-      return handleRegistrationAccept(message)
+      return handleRegistrationAccept(payload);
   }
 }
 
 // Handler for Registration accept MQTT messages
-var handleRegistrationAccept = function (message) {
+var handleRegistrationAccept = function (payload) {
     // message is Buffer 
-    var payload = JSON.parse(message);
+    console.log("handleRegistrationAccept ", payload);
     registration_success = 1;
     publishSnapInfo("dscmgr/snaplist");
+    clearInterval(sendRegistrationTaskId);
 }
 
 const push_snap_options = {
@@ -155,9 +147,9 @@ const httpSnapPushResponsecallback = (res, snap_name, snap_resp, num_snaps) => {
     snap_resp.push(temp);
     // Got responses for all the push snap requests, Send the status and update.
     if (snap_resp.length == num_snaps) {
-        console.log('httpSnapPushResponsecallback send responses ', snap_resp);
         const msg = JSON.stringify({
             tpid: getserial(),
+            cid: "100",
             message: "dscmgr/pushsnapresp",
             timestamp: Math.round((new Date()).getTime() / 1000),
             hostname:  os.hostname(),
@@ -173,22 +165,23 @@ const httpSnapPushResponsecallback = (res, snap_name, snap_resp, num_snaps) => {
 }
 
 // Handler for new MQTT messages
-var handleSnapUpdate = function (message) {
+var handleSnapUpdate = function (snap_msg) {
     var snap_resp = [];
-    snap_msg = JSON.parse(message);
-    log('handleSnapUpdate snaps length', snap_msg.snaps.length);
+    //snap_msg = JSON.parse(message);
+
+    log("handleSnapUpdate recevied snap_msg", snap_msg);
 
     // Multi snap operation not working, Bug reported to snapcraft
     const install_json = JSON.stringify({
         action: snap_msg.action
     });
 
-    for(var i=0; i<snap_msg.snaps.length; i++){
-        log('handleSnapUpdate snaps ', snap_msg.snaps[i]);
+    for(var i=0; i<snap_msg.snaplist.length; i++){
+        log('handleSnapUpdate snaps ', snap_msg.snaplist[i]);
     
         const push_snap_options = {
             socketPath: '/run/snapd.socket',
-            path: '/v2/snaps/' + snap_msg.snaps[i],
+            path: '/v2/snaps/' + snap_msg.snaplist[i],
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -196,9 +189,9 @@ var handleSnapUpdate = function (message) {
             }
         };
 
-        let snap_name = snap_msg.snaps[i];
+        let snap_name = snap_msg.snaplist[i];
         const req = http.request(push_snap_options, function (res) { httpSnapPushResponsecallback(res, snap_name,
-                                 snap_resp, snap_msg.snaps.length); } );
+                                 snap_resp, snap_msg.snaplist.length); } );
 
         req.on('error', (error) => {
                 snap_resp.push(error);
@@ -246,6 +239,7 @@ const sendSnapInfo = (snap_list, topic) => {
 
     const msg = JSON.stringify({
         tpid: getserial(),
+        cid: "100",
         message: topic,
         timestamp: Math.round((new Date()).getTime() / 1000),
         hostname:  os.hostname(),
@@ -263,11 +257,16 @@ const publishSnapInfo = (topic) => {
 
 const startSendingTask = (appConfig) => {
   log('Start Sending Task ...');
-  return setInterval(() => {
-    if (mqttClient) {
-       sendRegistration(); 
-    }
-  }, appConfig.app.sendInterval);
+
+  if (registration_success == 0) {    
+      return setInterval(() => {
+        if (mqttClient) {
+           sendRegistration(); 
+        }
+      }, appConfig.app.sendInterval);
+  } else {
+     clearInterval(sendRegistrationTaskId);
+  }
 };
 
 const stopSendingTask = () => {
@@ -289,13 +288,13 @@ const start = (appConfig) => {
   }
 
     // Test code for snap install/update/remove
-    const test_message = JSON.stringify({
+    /* const test_message = JSON.stringify({
         action: "install",
         //snaps: ["hello", "hello-world", "hmon", "httplab"]
         snaps: ["hello"]
         });
 
-    handleSnapUpdate(test_message);
+    handleSnapUpdate(test_message); */
 };
 
 const stop = () => {
@@ -305,7 +304,6 @@ const stop = () => {
   stopSendingTask();
   brokerDisconnect();
 };
-
 
 const init = () => {
   config = loadConfig();
